@@ -50,6 +50,8 @@ def getValue(sql):
     except Exception as e:
         print(e);
         return False;
+        
+    return False;
 
 def getTable(tablename,listname=None,where=None):
     '''
@@ -156,6 +158,18 @@ def deleteTableValues(tablename):
     ret = getValue(sql);
     link.commit();
     return ret;
+    
+def getCount(tablename):
+    '''
+    获取表中的数据条数
+    '''
+    columns = getColumns(tablename);
+    sql = "SELECT COUNT("+columns[0]+") FROM "+tablename;
+    ret = getValue(sql);
+    if isinstance(ret,tuple):
+        return ret[0][0];
+    else:
+        return 0;
 
 def close():
     # 关闭数据库连接
