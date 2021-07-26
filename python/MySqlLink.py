@@ -16,7 +16,7 @@ USERNAME = "root";
 USERPASSWORD = "password";
 
 #连接的数据库名称
-DATANAME = "flask1";
+DATANAME = "majiang";
 
 #数据编码
 CHARSET = "utf8";
@@ -64,9 +64,9 @@ def getValue(sql):
         print(e);
         with open(LOGPATH,"a") as f:
             f.write("报告时间: "+str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
-            f.write("错误内容: "+str(e));
-            f.write("错误文件: "+str(e.__traceback__.tb_frame.f_globals["__file__"]));
-            f.write("错误行数: "+str(e.__traceback__.tb_lineno));
+            f.write("\n错误内容: "+str(e));
+            f.write("\n错误文件: "+str(e.__traceback__.tb_frame.f_globals["__file__"]));
+            f.write("\n错误行数: "+str(e.__traceback__.tb_lineno));
             f.write("\n");
             if str(e)=="(2006, 'MySQL server has gone away')":
                 f.write("系统尝试重新连接数据库...\n");
@@ -83,6 +83,8 @@ def getValue(sql):
 
                     # 使用 fetchone() 方法获取一条数据
                     data = cursor.fetchall();
+
+                    f.write("\n数据库重新连接成功.\n");
 
                     if len(data)==0:
                         if ret==0:
@@ -109,6 +111,8 @@ def getValue(sql):
                         # 使用 fetchone() 方法获取一条数据
                         data = cursor.fetchall();
 
+                        f.write("重启数据库连接成功.\n");
+
                         if len(data)==0:
                             if ret==0:
                                 return False;
@@ -118,6 +122,7 @@ def getValue(sql):
                             return data;
                     except Exception as e3:
                         f.write("重启数据库连接失败,错误内容:"+str(e3));
+                        f.write("\n系统不再尝试连接数据库\n");
                         return False;
 
     #finally:
@@ -168,6 +173,23 @@ def getTable(tablename,listname=None,where=None):
 
     return getValue(sql);
 
+def lenValue(tableName,keyName="*"):
+    '''
+    查询表中有多少数据
+    '''
+    sql = "SELECT COUNT(id) FROM users;";
+    sql = "SELECT COUNT("+keyName+") FROM "+tableName+";";
+    return getValue(sql)[0][0];
+
+def existsValue(tableName,keyName,keyValue):
+    '''
+    查询表中是否有该项数据
+    0表示不存在
+    '''
+    sql = "SELECT COUNT(*) FROM users WHERE `id` = 1;"
+    sql = "SELECT COUNT("+keyName+") FROM "+tableName+" WHERE `"+keyName+"` = "+str(keyValue)+";";
+    return getValue(sql)[0][0];
+
 def addValue(tablename,listnames,values):
     '''
     向表中添加数据
@@ -193,13 +215,37 @@ def addValue(tablename,listnames,values):
     link.commit();
     return ret;
 
+def addValueByDict(tablename,json:dict):
+    '''
+    向表中添加字典数据
+    '''
+    #sql = "INSERT INTO `users` (`id`, `name`, `password`) VALUES ('0', 'name', 'ba436ed15d0b0da7518772e3b23acd94')";
+    listnames = [];
+    values = [];
+    for x in json:
+        listnames.append(x);
+        values.append(json[x]);
+    return addValue(tablename,listnames,values);
+
 def addValues(tablename,listnames,valuess):
     '''
     向表中添加多条数据
     '''
-    ret = False;
+    ret = [];
     for x in valuess:
-        ret = addValue(tablename,listnames,x);
+        ret.append(addValue(tablename,listnames,x));
+
+    link.commit();
+    return ret;
+
+def addValuesByDict(tablename,dicts):
+    '''
+    向表中添加多条数据
+    '''
+    ret = [];
+    if isinstance(dicts,dict):
+        for x in dicts:
+            ret.append(addValueByDict(dicts[x]));
 
     link.commit();
     return ret;
@@ -233,6 +279,24 @@ def changeValues(tableName,listNames:list,newValues:list,keyName,keyValue)->bool
     ret = getValue(sql);
     link.commit();
     return ret;
+
+def changeValueByDict(tablename,json:dict,keyname,keyvalue):
+    '''
+    根据字典修改数据
+    '''
+    sql = "UPDATE `files` SET `name`=' 1', `size`='1', `eachSize`='1' WHERE (`id`='6') LIMIT 1";
+    sql = "UPDATE `"+tableName+"` SET `";
+    if len(json)==1:
+        for x in json:
+            y = json[x];
+            return changeValue(tablename,x,y,keyname,keyvalue);
+    else:
+        listnames =[];
+        values = [];
+        for x in json:
+            listnames.append(x);
+            values.append(json[x]);
+        return changeValues(tablename,listnames,values,keyname,keyvalue);
 
 def getColumns(tablename):
     '''
